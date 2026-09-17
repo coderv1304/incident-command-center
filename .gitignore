@@ -72,3 +72,11 @@ logs/
 *.zip
 *.tar.gz
 .cache/
+lambda/boto3/
+lambda/botocore/
+lambda/dateutil/
+lambda/jmespath/
+lambda/s3transfer/
+lambda/urllib3/
+lambda/six.py
+lambda/*.dist-info/
