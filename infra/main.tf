@@ -76,3 +76,37 @@ resource "aws_iam_role_policy" "incident_lambda_policy" {
     ]
   })
 }
+
+# --- DynamoDB Table for Incident Records ---
+
+resource "aws_dynamodb_table" "incidents_table" {
+  name = "IncidentRecords"
+  billing_mode  = "PAY_PER_REQUEST"
+  hash_key = "incident_id"
+
+  attribute {
+    name = "incident_id"
+    type = "S"
+  }
+
+  tags = {
+    Project = "incident-command-center"
+  }
+}
+
+# --- Lambda Function ---
+
+resource "aws_lambda_function" "incident_log_handler" {
+  function_name = "incident-log-handler"
+  role = aws_iam_role.incident_lambda_role.arn
+  handler = "log_handler.lambda_handler"
+  runtime = "python3.12"
+  filename = "${path.module}/../lambda/function.zip"
+  timeout = 15
+
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.incidents_table.name
+    }
+  }   
+}
