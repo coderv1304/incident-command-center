@@ -102,6 +102,7 @@ resource "aws_lambda_function" "incident_log_handler" {
   handler = "log_handler.lambda_handler"
   runtime = "python3.12"
   filename = "${path.module}/../lambda/function.zip"
+  source_code_hash = filebase64sha256("${path.module}/../lambda/function.zip")
   timeout = 15
 
   environment {
@@ -109,4 +110,30 @@ resource "aws_lambda_function" "incident_log_handler" {
       TABLE_NAME = aws_dynamodb_table.incidents_table.name
     }
   }   
+}
+
+resource "aws_iam_user" "rahul" {
+  name = "rahul-bhagwat"
+}
+
+resource "aws_iam_user_policy_attachment" "rahul_bedrock" {
+  user       = aws_iam_user.rahul.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+}
+
+resource "aws_iam_user" "prapti" {
+  name = "prapti-sharma"
+}
+
+resource "aws_iam_user_policy_attachment" "prapti_amplify" {
+  user       = aws_iam_user.prapti.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmplifyBackendDeployFullAccess"
+}
+
+resource "aws_iam_access_key" "rahul_key" {
+  user = aws_iam_user.rahul.name
+}
+
+resource "aws_iam_access_key" "prapti_key" {
+  user = aws_iam_user.prapti.name
 }
