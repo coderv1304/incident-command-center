@@ -110,3 +110,29 @@ resource "aws_lambda_function" "incident_log_handler" {
     }
   }   
 }
+
+resource "aws_iam_user" "rahul" {
+  name = "rahul-bhagwat"
+}
+
+resource "aws_iam_user_policy_attachment" "rahul_bedrock" {
+  user       = aws_iam_user.rahul.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+}
+
+resource "aws_iam_user" "prapti" {
+  name = "prapti-sharma"
+}
+
+resource "aws_iam_user_policy_attachment" "prapti_amplify" {
+  user       = aws_iam_user.prapti.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmplifyBackendDeployFullAccess"
+}
+
+resource "aws_iam_access_key" "rahul_key" {
+  user = aws_iam_user.rahul.name
+}
+
+resource "aws_iam_access_key" "prapti_key" {
+  user = aws_iam_user.prapti.name
+}
