@@ -113,7 +113,12 @@ GET http://localhost:8081/api/incidents
 
 **Status:** Real log ingestion pipeline fully working and verified.
 
-**Backend/Frontend — Prapti:** *(update once confirmed)* swap from mock data to real DynamoDB reads — pending confirmation.
+**Backend/Frontend — Prapti**
+
+- ✅ Spring Boot API connected to real DynamoDB (`IncidentRecords`), replacing mock data
+- ✅ React dashboard confirmed rendering live, real incident records
+
+**Status:** Prapti's real-data integration complete.
 
 ---
 
@@ -130,7 +135,11 @@ GET http://localhost:8081/api/incidents
 
 **Status: core automatic pipeline is fully complete.** Every piece — detection, log retrieval, storage — works end-to-end without manual intervention. The only remaining piece is Rahul's Bedrock integration, which will populate the `ai_explanation` and `suggested_fix` fields once merged in.
 
-**Frontend — Prapti:** *(update once confirmed)* Amplify Hosting deployment — pending confirmation.
+**Frontend — Prapti**
+
+- ✅ Deployed to AWS Amplify Hosting — live public URL confirmed working
+
+**Status:** Prapti's deployment complete.
 
 ---
 
