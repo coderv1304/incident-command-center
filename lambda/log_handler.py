@@ -1,33 +1,46 @@
 import json
 import os
 import uuid
-import boto3
 from datetime import datetime, timezone
+import boto3
 
-
-dynamodb = boto3.resource('dynamodb')
-table_name = os.environ.get('TABLE_NAME', 'IncidentRecords')
+dynamodb = boto3.resource("dynamodb")
+table_name = os.environ.get("TABLE_NAME", "IncidentRecords")
 table = dynamodb.Table(table_name)
 
-def get_sample_failure_log():
+logs_client = boto3.client("logs")
+
+LOG_GROUP_NAME = "/dummy-pipeline/build-failures"
+LOG_STREAM_NAME = "build-001"
+
+
+def get_real_failure_log():
     """
-    Stand-in for real CloudWatch log retrieval.
-    Replace this with an actual boto3 CloudWatch Logs call
-    once this piece is confirmed working end-to-end.
+    Pulls the most recent log events from CloudWatch.
+    In the full pipeline, log group/stream would come from
+    the EventBridge event payload (Task 4) - hardcoded here
+    for isolated testing before that wiring exists.
     """
-    return (
-        "ERROR: npm install failed\n"
-        "Reason: Could not resolve dependency 'react-router-dom@7.0.0'\n"
-        "peer react@\"^18.0.0\" from react-router-dom@7.0.0\n"
-        "Found: react@17.0.2\n"
-        "Fix the version mismatch and re-run the pipeline."
+    response = logs_client.get_log_events(
+        logGroupName=LOG_GROUP_NAME,
+        logStreamName=LOG_STREAM_NAME,
+        limit=20,
+        startFromHead=False,
     )
+
+    events = response.get("events", [])
+    if not events:
+        return "No log events found."
+
+    log_text = "\n".join(event["message"] for event in events)
+    return log_text
+
 
 def build_incident_record(raw_log):
     """
     Builds a record matching the locked schema.
     ai_explanation, suggested_fix, and severity are placeholders
-    for now — Rahul's Bedrock call fills these in during integration.
+    for now - Rahul's Bedrock call fills these in during integration.
     """
     return {
         "incident_id": str(uuid.uuid4()),
@@ -37,13 +50,17 @@ def build_incident_record(raw_log):
         "ai_explanation": "",
         "suggested_fix": "",
         "severity": "unknown",
-        "status": "new"
+        "status": "new",
     }
 
+
 def lambda_handler(event, context):
-    raw_log = get_sample_failure_log()
+    raw_log = get_real_failure_log()
     record = build_incident_record(raw_log)
+
     table.put_item(Item=record)
+
+    print(f"Incident stored: {record['incident_id']}")
 
     return {
         "statusCode": 200,
