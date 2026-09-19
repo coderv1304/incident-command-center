@@ -102,6 +102,7 @@ resource "aws_lambda_function" "incident_log_handler" {
   handler = "log_handler.lambda_handler"
   runtime = "python3.12"
   filename = "${path.module}/../lambda/function.zip"
+   source_code_hash = filebase64sha256("${path.module}/../lambda/function.zip")
   timeout = 15
 
   environment {
@@ -135,4 +136,75 @@ resource "aws_iam_access_key" "rahul_key" {
 
 resource "aws_iam_access_key" "prapti_key" {
   user = aws_iam_user.prapti.name
+}
+
+resource "aws_iam_user_policy" "prapti_dynamodb_read" {
+  name = "prapti-dynamodb-read"
+  user = aws_iam_user.prapti.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = aws_dynamodb_table.incidents_table.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_user" "github_actions" {
+  name = "github-actions-trigger"
+}
+
+resource "aws_iam_user_policy" "github_actions_eventbridge" {
+  name = "github-actions-eventbridge-put"
+  user = aws_iam_user.github_actions.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "events:PutEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+  
+}
+
+resource "aws_iam_access_key" "github_actions_key" {
+  user = aws_iam_user.github_actions.name
+}
+
+resource "aws_cloudwatch_event_rule" "build_failure_rule" {
+  name = "catch-build-failures"
+  description = "Triggers incident lambda when a build failure event arrives"
+  
+  event_pattern = jsonencode({
+    "source" : ["dummy.pipeline"],
+    "detail-type": ["BuildFailed"]
+  })
+}
+
+resource "aws_cloudwatch_event_target" "invoke_lambda" {
+  rule = aws_cloudwatch_event_rule.build_failure_rule.name
+  target_id = "incident-lambda-target"
+  arn = aws_lambda_function.incident_log_handler.arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id = "AllowEventBridgeinvoke"
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.incident_log_handler.function_name
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.build_failure_rule.arn
 }
