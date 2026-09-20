@@ -20,7 +20,7 @@ function App() {
   }, []);
 
   const fetchIncidents = () => {
-    axios.get('http://localhost:8081/api/incidents')
+    axios.get('http://incident-command-center-api-env.eba-mw3yecij.ap-south-1.elasticbeanstalk.com/api/incidents')
       .then(response => {
         setIncidents(response.data);
         setLoading(false);

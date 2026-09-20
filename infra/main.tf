@@ -208,3 +208,50 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.build_failure_rule.arn
 }
+
+resource "aws_iam_role" "eb_instance_role" {
+  name = "eb-incident-api-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eb_web_tier" {
+  role       = aws_iam_role.eb_instance_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
+}
+
+resource "aws_iam_role_policy" "eb_dynamodb_read" {
+  name = "eb-dynamodb-read"
+  role = aws_iam_role.eb_instance_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = aws_dynamodb_table.incidents_table.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "eb_instance_profile" {
+  name = "eb-incident-api-instance-profile"
+  role = aws_iam_role.eb_instance_role.name
+}
