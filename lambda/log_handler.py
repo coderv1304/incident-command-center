@@ -3,6 +3,7 @@ import os
 import uuid
 import boto3
 from datetime import datetime, timezone
+from bedrock_service import analyze_log_with_bedrock
 
 
 dynamodb = boto3.resource('dynamodb')
@@ -23,29 +24,44 @@ def get_sample_failure_log():
         "Fix the version mismatch and re-run the pipeline."
     )
 
-def build_incident_record(raw_log):
+def build_incident_record(raw_log, source="dummy-breakable-repo"):
     """
     Builds a record matching the locked schema.
-    ai_explanation, suggested_fix, and severity are placeholders
-    for now — Rahul's Bedrock call fills these in during integration.
+    ai_explanation, suggested_fix, and severity are generated via Amazon Bedrock Claude.
     """
+    ai_analysis = analyze_log_with_bedrock(raw_log)
+
     return {
         "incident_id": str(uuid.uuid4()),
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "source": "dummy-breakable-repo",
+        "source": source,
         "raw_log": raw_log,
-        "ai_explanation": "",
-        "suggested_fix": "",
-        "severity": "unknown",
-        "status": "new"
+        "ai_explanation": ai_analysis.get("ai_explanation", "Pipeline failure detected."),
+        "suggested_fix": ai_analysis.get("suggested_fix", "Check build configuration."),
+        "severity": ai_analysis.get("severity", "MEDIUM"),
+        "status": "OPEN"
     }
 
 def lambda_handler(event, context):
-    raw_log = get_sample_failure_log()
-    record = build_incident_record(raw_log)
+    # Support direct raw_log invocation or fallback to sample log
+    raw_log = None
+    source = "dummy-breakable-repo"
+
+    if isinstance(event, dict):
+        raw_log = event.get("raw_log")
+        source = event.get("source", source)
+
+    if not raw_log:
+        raw_log = get_sample_failure_log()
+
+    record = build_incident_record(raw_log, source=source)
     table.put_item(Item=record)
 
     return {
         "statusCode": 200,
-        "body": json.dumps({"incident_id": record["incident_id"]}),
+        "body": json.dumps({
+            "incident_id": record["incident_id"],
+            "severity": record["severity"],
+            "ai_explanation": record["ai_explanation"]
+        }),
     }
