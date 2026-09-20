@@ -153,4 +153,5 @@ The **React dashboard**, deployed on **AWS Amplify Hosting**, calls the API (thr
 
 ## AI Tools Used
 
-- GitHub Copilot
+- GitHub Copilot - for fixing some parentheses errors
+- Claude 3.5(Sonnet)
